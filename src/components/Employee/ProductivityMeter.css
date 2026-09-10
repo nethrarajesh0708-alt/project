@@ -1,0 +1,188 @@
+.productivity-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.productivity-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 280px;
+  width: 100%;
+}
+
+.productivity-circle-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.productivity-circle {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.productivity-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.productivity-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.productivity-percentage {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+}
+
+.productivity-hours {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+}
+
+.productivity-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.productivity-liquid-body {
+  animation: liquidBob 5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.productivity-liquid-rect {
+  transition: none;
+}
+
+.wave-layer {
+  will-change: transform;
+}
+
+.wave-back {
+  animation: waveMoveRight 6s linear infinite;
+}
+
+.wave-front {
+  animation: waveMoveLeft 4s linear infinite;
+}
+
+.wave-path {
+  will-change: transform;
+}
+
+.wave-highlight {
+  will-change: transform, opacity;
+  animation: highlightShimmer 3s ease-in-out infinite;
+}
+
+.bubble {
+  opacity: 0;
+  animation: bubbleRise 4s ease-in infinite;
+}
+
+.bubble-1 {
+  animation-delay: 0s;
+}
+
+.bubble-2 {
+  animation-delay: 1.5s;
+}
+
+.bubble-3 {
+  animation-delay: 3s;
+}
+
+@keyframes waveMoveRight {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes waveMoveLeft {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes liquidBob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes highlightShimmer {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes bubbleRise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-60px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .productivity-circle-container {
+    width: 160px;
+    height: 160px;
+  }
+
+  .productivity-percentage {
+    font-size: 2rem;
+  }
+
+  .productivity-hours {
+    font-size: 0.75rem;
+  }
+}
