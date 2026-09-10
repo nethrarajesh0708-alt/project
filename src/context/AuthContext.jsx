@@ -10,12 +10,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      if (parsed.mock) {
-        setUser(parsed);
-        setLoading(false);
-        return;
-      }
       fetch(`${BASE_URL}backend/api/auth/check_session.php`, {
         credentials: "include",
       })
@@ -25,12 +19,10 @@ export const AuthProvider = ({ children }) => {
             setUser(data.user);
           } else {
             localStorage.removeItem("user");
-            setUser(null);
           }
         })
         .catch(() => {
           localStorage.removeItem("user");
-          setUser(null);
         })
         .finally(() => {
           setLoading(false);
@@ -43,10 +35,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (userData) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
-
-    if (userData.mock) {
-      return;
-    }
 
     try {
       const res = await fetch(`${BASE_URL}backend/api/auth/check_session.php`, {

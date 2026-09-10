@@ -42,11 +42,6 @@ const LoginFetch = () => {
           }),
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("BACKEND_UNAVAILABLE");
-        }
-
         const data = await response.json();
 
         if (data.success) {
@@ -64,23 +59,8 @@ const LoginFetch = () => {
           setError(data.message || "Invalid credentials");
         }
       } catch (err) {
-        const normalized = formik.values.username.toLowerCase();
-        if (
-          err.message === "BACKEND_UNAVAILABLE" ||
-          (normalized === "admin" || normalized === "emp0001")
-        ) {
-          const mockRole =
-            normalized === "admin" ? "admin" : "employee";
-          login({ username: formik.values.username, role: mockRole, mock: true });
-          navigate(
-            mockRole === "admin"
-              ? "/AdminDashboard"
-              : "/EmployeeDashboard"
-          );
-        } else {
-          console.error(err);
-          setError("Something went wrong. Please try again.");
-        }
+        console.error(err);
+        setError("Something went wrong. Please try again.");
       } finally {
         setIsLoading(false);
       }

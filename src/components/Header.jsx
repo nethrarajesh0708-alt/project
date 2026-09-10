@@ -1,10 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import DefaultAvatar from "../components/Employee/DefaultAvatar";
 
 const Header = () => {
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    if (user?.role === "employee") {
+      fetch(`${BASE_URL}backend/api/profile/profile.php`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setProfile(data.profile);
+          }
+        })
+        .catch(() => {
+          // ignore profile fetch errors in header
+        });
+    }
+  }, [user, BASE_URL]);
 
   const handleLogout = async () => {
     await logout();
@@ -77,6 +97,15 @@ const Header = () => {
             </>
           )}
         </ul>
+
+        {user?.role === "employee" && profile && (
+          <div className="profile-section">
+            <div className="profile-details">
+              <DefaultAvatar name={profile.full_name} gender={profile.gender} status={profile.status} size={50} />
+              <span className="profile-name">{profile.full_name}</span>
+            </div>
+          </div>
+        )}
 
       </nav>
     </header>

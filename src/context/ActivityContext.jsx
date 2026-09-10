@@ -5,6 +5,14 @@ const ActivityContext = createContext();
 
 export const ActivityProvider = ({ children }) => {
   const [isActive, setIsActive] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
+  const [statusCheckedAt, setStatusCheckedAt] = useState(null);
+  const [trackerFields, setTrackerFields] = useState({
+    projectCode: "",
+    projectName: "",
+    projectType: "",
+    activityRole: "",
+  });
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const checkStatus = useCallback(async () => {
@@ -14,12 +22,29 @@ export const ActivityProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        setIsActive(data.is_running || false);
+        const isRunning = data.is_running || false;
+        setIsActive(isRunning);
+        setActiveSession(isRunning ? data : null);
+        setStatusCheckedAt(Date.now());
+        if (isRunning) {
+          setTrackerFields((current) => ({
+            projectCode: data.project_code || current.projectCode || "",
+            projectName: data.project_name || current.projectName || "",
+            projectType: data.project_type || current.projectType || "",
+            activityRole: data.activity_role || current.activityRole || "",
+          }));
+        }
+        return data;
       }
     } catch (err) {
       console.error("Failed to check activity status", err);
     }
+    return null;
   }, [BASE_URL]);
+
+  const updateTrackerField = useCallback((field, value) => {
+    setTrackerFields((current) => ({ ...current, [field]: value }));
+  }, []);
 
   useEffect(() => {
     checkStatus();

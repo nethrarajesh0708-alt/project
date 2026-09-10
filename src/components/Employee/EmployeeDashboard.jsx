@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import { Button } from "react-bootstrap";
 import TaskProgressModal from "../../pages/Tasks/Employee/TaskProgressModal";
 import EmployeeTasks from "../../pages/Tasks/Employee/EmployeeTasks";
+import WorkTracker from "./WorkTracker";
 
 const EmployeeDashboard = () => {
   const [showModal, setShowModal] = useState(false);
 
   return (
     <div className="container mt-5">
+      <WorkTracker />
+
       <Button variant="primary" onClick={() => setShowModal(true)}>
         Update Task Progress
       </Button>
