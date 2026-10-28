@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,11 +12,27 @@ const HrSidebar = ({ activeTab, setActiveTab }) => {
     navigate('/LoginFetch');
   };
 
+  // Get name from email (e.g. priya.hr@company.com -> "Priya Hr")
+  const getName = () => {
+    if (!user?.email) return 'HR';
+    const local = user.email.split('@')[0];
+    return local.split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   const navItems = [
     { path: '/hr/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/hr/employees', label: 'Employees', icon: '👥' },
     { path: '/hr/attendance', label: 'Attendance', icon: '📅' },
     { path: '/hr/leave-requests', label: 'Leave Requests', icon: '📝' },
+    { path: '/hr/payroll', label: 'Payroll', icon: '💰' },
+    { path: '/hr/departments', label: 'Departments', icon: '🏢' },
+    { path: '/hr/holidays', label: 'Holidays', icon: '🎉' },
+    { path: '/hr/announcements', label: 'Announcements', icon: '📢' },
+    { path: '/hr/recruitment', label: 'Recruitment', icon: '👥' },
+    { path: '/hr/reports', label: 'Reports', icon: '📊' },
+    { path: '/hr/tasks', label: 'Tasks', icon: '✅' },
+    { path: '/hr/time-tracking', label: 'Time Tracking', icon: '⏱' },
+    { path: '/hr/settings', label: 'Settings', icon: '⚙️' },
     { path: '/hr/profile', label: 'HR Profile', icon: '👤' },
   ];
 
@@ -24,20 +40,20 @@ const HrSidebar = ({ activeTab, setActiveTab }) => {
     <div className={`hr-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <h3>{collapsed ? 'HR' : 'HR Panel'}</h3>
-        <button 
+        <button
           className="collapse-btn"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? '→' : '←'}
         </button>
       </div>
-      
+
       <nav className="sidebar-nav">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) => 
+            className={({ isActive }) =>
               `sidebar-link ${isActive ? 'active' : ''}`
             }
             onClick={() => setActiveTab(item.label)}

@@ -12,33 +12,34 @@ import Home from "./components/Home";
 import About from "./components/About";
 import Contact from "./components/Contact";
 import LoginFetch from "./pages/LoginFetch";
+import ManagerDashboard from "./components/HR/ManagerDashboard";
 import GeneratePayroll from "./pages/Payroll/GeneratePayroll";
 import EmployeeProfile from "./pages/EmployeeProfile.jsx";
 import SalarySlip from "./pages/Payroll/SalarySlip.jsx";
 import HrDashboard from "./components/HR/HrDashboard";
+import HrAttendance from "./components/HR/HrAttendance";
 import AdminDashboard from "./components/Admin/AdminDashboard";
+import AdminProfile from "./components/Admin/AdminProfile";
 import EmployeeDashboard from "./components/Employee/EmployeeDashboard";
 import { AnimatePresence, motion } from "framer-motion";
 
 // ProtectedRoute Component with loading check
-const ProtectedRoute = ({ children, roles }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/LoginFetch" replace />;
-  }
-
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
+const ProtectedRoute = ({ children }) => {
+  // TEMP DESIGN PHASE: auth bypassed. Restore the original check before launch.
+  // const { user, loading } = useAuth();
+  // if (loading) {
+  //   return (
+  //     <div className="text-center mt-5">
+  //       <p>Loading...</p>
+  //     </div>
+  //   );
+  // }
+  // if (!user) {
+  //   return <Navigate to="/LoginFetch" replace />;
+  // }
+  // if (roles && !roles.includes(user.role)) {
+  //   return <Navigate to="/" replace />;
+  // }
 
   return children;
 };
@@ -52,6 +53,8 @@ const RoleDashboard = () => {
       return <AdminDashboard />;
     case "hr":
       return <HrDashboard />;
+    case "manager":
+      return <ManagerDashboard />;
     case "employee":
       return <EmployeeDashboard />;
     default:
@@ -113,6 +116,15 @@ const AnimatedRoutes = () => {
           />
 
           <Route
+            path="/hr/attendance"
+            element={
+              <ProtectedRoute roles={["hr", "manager", "admin"]}>
+                <HrAttendance />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/AdminDashboard"
             element={
               <ProtectedRoute roles={["admin"]}>
@@ -122,10 +134,28 @@ const AnimatedRoutes = () => {
           />
 
           <Route
+            path="/admin/profile"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <AdminProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/EmployeeDashboard"
             element={
               <ProtectedRoute roles={["employee"]}>
                 <EmployeeDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/manager/dashboard"
+            element={
+              <ProtectedRoute roles={["manager"]}>
+                <ManagerDashboard />
               </ProtectedRoute>
             }
           />

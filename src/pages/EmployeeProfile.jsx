@@ -1,781 +1,480 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Alert,
-  Spinner,
-  Nav,
-  Tab,
-  Table,
-} from "react-bootstrap";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { FiUser, FiPhone, FiMail, FiHome, FiBriefcase, FiDollarSign, FiSave, FiCalendar, FiClock, FiActivity } from "react-icons/fi";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import WorkRecord from "./Tasks/Employee/WorkRecord";
-import DefaultAvatar from "../components/Employee/DefaultAvatar";
+import React, { useState, useEffect, useCallback } from "react";
+import { Container, Row, Col, Card, Button, Alert, Table } from "react-bootstrap";
+import { FiUser, FiPhone, FiMail, FiHome, FiBriefcase, FiDollarSign, FiSave, FiCalendar, FiClock, FiActivity, FiShield, FiLock, FiSettings } from "react-icons/fi";
+import PageErrorBoundary from "../components/common/ErrorBoundary";
+import { api } from "../api";
+import AdminSidebar from "../components/Admin/Sidebar";
+import { useAuth } from "../context/AuthContext";
+
+// Complete placeholder profile — single source, edit here to change dummy values.
+const PROFILE_PLACEHOLDER = {
+  id: "EMP0001",
+  employeeId: "EMP0001",
+  full_name: "John Employee",
+  name: "John Employee",
+  email: "john.employee@company.com",
+  phone: "9876543210",
+  photo: "",
+  image: "",
+  designation: "Software Engineer",
+  department: "Engineering",
+  department_name: "Engineering",
+  join_date: "2018-03-01",
+  joining_date: "2018-03-01",
+  role: "employee",
+  status: "Active",
+  permissions: ["Attendance", "Reports", "Settings"],
+  roleAssignedBy: "HR Manager",
+  roleAssignedOn: "2018-03-01",
+  username: "john.employee",
+  lastLogin: { time: "2026-10-27 09:15 AM", ip: "192.168.1.105", device: "Chrome on Windows" },
+  twoFactorEnabled: false,
+  activeSessions: [],
+  recentActions: [],
+  loginHistory: [],
+  preferences: { language: "English", timeZone: "Asia/Kolkata", notifications: true, theme: "light" },
+  gender: "Male",
+  address: "123 MG Road, Bangalore",
+  emergency_name: "Jane Employee",
+  emergency_phone: "9876543211",
+  emergency_relation: "Spouse",
+  date_of_birth: "1985-05-15",
+  blood_group: "B+",
+  employment_type: "full-time",
+  bank_account_details: "****1234",
+  pan_number: "ABCDE1234F",
+  pf_uan_number: "123456789012",
+  assigned_manager_poc: "Rahul Manager",
+  qualifications: "B.Tech Computer Science",
+  skills: "JavaScript, React",
+  photo_url: "",
+  manager_id: null,
+  leave_balance: 12,
+  is_active: 1,
+  created_at: "2018-03-01",
+  work_location: "Bangalore",
+  permanent_address: "123 MG Road, Bangalore",
+  dob: "1985-05-15",
+};
+
+// Field mapper: API field names -> UI field names. Edit here if backend changes.
+const mapProfile = (raw) => ({
+  id: raw.id ?? raw.employee_id ?? raw.user_id ?? "",
+  employeeId: raw.employeeId ?? raw.employee_id ?? raw.user_id ?? "",
+  fullName: raw.full_name ?? raw.name ?? raw.employeeName ?? "",
+  name: raw.name ?? raw.full_name ?? raw.employeeName ?? "",
+  email: raw.email ?? "",
+  phone: raw.phone ?? raw.mobile ?? raw.mobile_number ?? "",
+  photo: raw.photo ?? raw.photo_url ?? raw.image ?? "",
+  image: raw.image ?? raw.photo ?? raw.photo_url ?? "",
+  designation: raw.designation ?? "",
+  department: raw.department ?? raw.department_name ?? "",
+  department_name: raw.department_name ?? raw.department ?? "",
+  joinDate: raw.join_date ?? raw.joining_date ?? raw.created_at ?? "",
+  join_date: raw.join_date ?? raw.joining_date ?? raw.created_at ?? "",
+  role: raw.role ?? "",
+  status: raw.status ?? "",
+  permissions: raw.permissions ?? [],
+  roleAssignedBy: raw.roleAssignedBy ?? "",
+  roleAssignedOn: raw.roleAssignedOn ?? "",
+  username: raw.username ?? "",
+  lastLogin: raw.lastLogin ?? { time: "-", ip: "-", device: "-" },
+  twoFactorEnabled: raw.twoFactorEnabled ?? false,
+  activeSessions: raw.activeSessions ?? [],
+  recentActions: raw.recentActions ?? [],
+  loginHistory: raw.loginHistory ?? [],
+  preferences: raw.preferences ?? { language: "English", timeZone: "Asia/Kolkata", notifications: true, theme: "light" },
+  gender: raw.gender ?? "",
+  address: raw.address ?? "",
+  emergency_name: raw.emergency_name ?? "",
+  emergency_phone: raw.emergency_phone ?? "",
+  emergency_relation: raw.emergency_relation ?? "",
+  date_of_birth: raw.date_of_birth ?? "",
+  blood_group: raw.blood_group ?? "",
+  employment_type: raw.employment_type ?? "",
+  bank_account_details: raw.bank_account_details ?? "",
+  pan_number: raw.pan_number ?? "",
+  pf_uan_number: raw.pf_uan_number ?? "",
+  assigned_manager_poc: raw.assigned_manager_poc ?? "",
+  qualifications: raw.qualifications ?? "",
+  skills: raw.skills ?? "",
+  photo_url: raw.photo_url ?? raw.photo ?? raw.image ?? "",
+  manager_id: raw.manager_id ?? null,
+  leave_balance: raw.leave_balance ?? 0,
+  is_active: raw.is_active ?? 1,
+  created_at: raw.created_at ?? "",
+  work_location: raw.work_location ?? "",
+  permanent_address: raw.permanent_address ?? "",
+  dob: raw.dob ?? "",
+});
 
 const EmployeeProfile = () => {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [success, setSuccess] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [widgets, setWidgets] = useState({ present_days: 0, late_days: 0, leave_balance: 0 });
-  const [recentSessions, setRecentSessions] = useState([]);
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const [formData, setFormData] = useState({});
+  const { user } = useAuth();
 
-  const [formData, setFormData] = useState({
-    phone: "",
-    email: "",
-    address: "",
-    emergency_name: "",
-    emergency_phone: "",
-    emergency_relation: "",
-    date_of_birth: "",
-    gender: "",
-    blood_group: "",
-    employment_type: "",
-    designation: "",
-    bank_account_details: "",
-    pan_number: "",
-    pf_uan_number: "",
-  });
-
-  const [leaveForm, setLeaveForm] = useState({
-    leave_year: "",
-    leave_type: "",
-    start_date: "",
-    end_date: "",
-    reason: "",
-    leave_days: 0,
-  });
-  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
-  const [leaveSuccess, setLeaveSuccess] = useState("");
-  const [leaveError, setLeaveError] = useState("");
+  const empId = user?.employee_id || user?.id || user?.employeeId || "EMP0001";
 
   useEffect(() => {
-    fetchProfile();
-    fetchWidgets();
-    fetchRecentSessions();
-  }, []);
+    loadProfile();
+  }, [loadProfile]);
 
-  useEffect(() => {
-    if (leaveForm.start_date && leaveForm.end_date) {
-      const start = new Date(leaveForm.start_date);
-      const end = new Date(leaveForm.end_date);
-      if (end >= start) {
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        setLeaveForm((prev) => ({ ...prev, leave_days: diffDays }));
-      } else {
-        setLeaveForm((prev) => ({ ...prev, leave_days: 0 }));
-      }
-    } else {
-      setLeaveForm((prev) => ({ ...prev, leave_days: 0 }));
-    }
-  }, [leaveForm.start_date, leaveForm.end_date]);
-
-  const fetchProfile = async () => {
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`${BASE_URL}backend/api/profile/profile.php`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        const profile = data.profile;
-        setProfile(profile);
-        setFormData({
-          phone: profile.phone || "",
-          email: profile.email || "",
-          address: profile.address || "",
-          emergency_name: profile.emergency_name || "",
-          emergency_phone: profile.emergency_phone || "",
-          emergency_relation: profile.emergency_relation || "",
-          date_of_birth: profile.date_of_birth && profile.date_of_birth !== "0000-00-00" ? profile.date_of_birth : "",
-          gender: profile.gender || "",
-          blood_group: profile.blood_group || "",
-          employment_type: profile.employment_type || "full-time",
-          designation: profile.designation || "",
-          bank_account_details: profile.bank_account_details || "",
-          pan_number: profile.pan_number || "",
-          pf_uan_number: profile.pf_uan_number || "",
-        });
+      const { data, error: err } = await api.getProfile(empId);
+      setError(err || null);
+      if (!err && data) {
+        setProfile(mapProfile(data));
       } else {
-        setError(data.message || "Failed to load profile");
+        setProfile(mapProfile(PROFILE_PLACEHOLDER));
       }
-    } catch {
-      setError("Something went wrong");
+    } catch (e) {
+      setError(e.message || "Failed to load profile");
+      setProfile(mapProfile(PROFILE_PLACEHOLDER));
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId]);
 
-  const fetchWidgets = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}backend/api/profile/widgets.php`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setWidgets(data.widgets);
-      }
-    } catch (err) {
-      console.error("Failed to load widgets", err);
-    }
+  const handleRetry = () => {
+    loadProfile();
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const formatDuration = (minutes) => {
-    const safe = Math.max(0, minutes || 0);
-    const h = Math.floor(safe / 60);
-    const m = safe % 60;
-    return `${h}h ${m}m`;
-  };
-
-  const formatDate = (value) => {
-    if (!value) return "-";
-    const d = new Date(value);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yy = String(d.getFullYear()).slice(-2);
-    return `${dd}/${mm}/${yy}`;
-  };
-
-  const formatSessionTime = (value) => {
-    if (!value) return "-";
-    const d = new Date(value);
-    return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
-  };
-
-  const fetchRecentSessions = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}backend/api/activity/sessions.php?action=history&limit=10`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setRecentSessions(data.sessions || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch recent sessions", err);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const res = await fetch(`${BASE_URL}backend/api/profile/profile.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSuccess(data.message);
-        setEditMode(false);
-        fetchProfile();
-      } else {
-        setError(data.message || "Update failed");
-      }
-    } catch {
-      setError("Something went wrong");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getWorkingYears = () => {
-    if (!profile?.join_date) return [new Date().getFullYear()];
-    const joinYear = new Date(profile.join_date).getFullYear();
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let y = joinYear; y <= currentYear; y++) {
-      years.push(y);
-    }
-    return years;
-  };
-
-  const handleLeaveSubmit = async (e) => {
+// eslint-disable-next-line no-unused-vars
+  const handleSave = (e) => {
     e.preventDefault();
-    setLeaveSubmitting(true);
-    setLeaveError("");
-    setLeaveSuccess("");
-
-    const leaveTypeMap = {
-      "Leave": 1,
-      "Permission": 7
-    };
-
-    try {
-      const res = await fetch(`${BASE_URL}backend/api/leave/leave_requests.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          employee_id: profile.id,
-          leave_type_id: leaveTypeMap[leaveForm.leave_type] || 1,
-          start_date: leaveForm.start_date,
-          end_date: leaveForm.end_date,
-          reason: leaveForm.reason,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLeaveSuccess(data.message || "Leave request submitted successfully");
-        setLeaveForm({
-          leave_year: "",
-          leave_type: "",
-          start_date: "",
-          end_date: "",
-          reason: "",
-          leave_days: 0,
-        });
-      } else {
-        setLeaveError(data.message || "Failed to submit leave request");
-      }
-    } catch {
-      setLeaveError("Something went wrong");
-    } finally {
-      setLeaveSubmitting(false);
-    }
+    setEditMode(false);
+    // TODO: connect function / API - save profile updates
+    setSuccess("Profile saved successfully");
   };
+
+  const handleChangePassword = () => {
+    // TODO: connect function / API - change password
+    setSuccess("Password change requested");
+  };
+
+  const handleToggle2FA = () => {
+    // TODO: connect function / API - toggle 2FA
+    setSuccess("2FA setting updated");
+  };
+
+  const handleLogoutAll = () => {
+    // TODO: connect function / API - logout all devices
+    setSuccess("Logged out of all devices");
+  };
+
+  const p = profile || mapProfile(PROFILE_PLACEHOLDER);
+
+  const statusBadge = p.status === "Active" ? "bg-success" : "bg-secondary";
+  const roleBadge = p.role === "Admin" ? "bg-primary" : p.role === "HR" ? "bg-info" : p.role === "manager" ? "bg-warning" : "bg-success";
 
   if (loading) {
     return (
-      <Container className="mt-5 text-center">
-        <Spinner animation="border" />
-      </Container>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <Container className="mt-5">
-        <Alert variant="danger">{error}</Alert>
-      </Container>
+      <PageErrorBoundary>
+        <div className="admin-dashboard" style={{ padding: "2rem" }}>
+          <AdminSidebar activeTab="profile" setActiveTab={() => {}} />
+          <div className="main-content p-4" style={{ marginLeft: "260px" }}>
+            <div className="text-center" style={{ padding: "4rem 0" }}>
+              <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="mt-2 text-muted">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </PageErrorBoundary>
     );
   }
 
   return (
-    <Container className="mt-4 mb-5">
-      <Card className="shadow-sm border-0 mb-4">
-        <Card.Body className="p-4">
-              <div
-                className="d-flex align-items-center mb-4"
-              >
-                <motion.div
-                  className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3"
-                  style={{ width: "80px", height: "80px" }}
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
-                >
-                  {profile.image ? (
-                    <img
-                      src={`${BASE_URL}backend/assets/uploads/employee/${profile.image}`}
-                      alt="Profile"
-                      style={{ width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <DefaultAvatar name={profile.full_name} gender={profile.gender} status={profile.status} size={80} />
-                  )}
-                </motion.div>
-                <div className="flex-grow-1">
-                  <motion.h3
-                    className="mb-0 fw-bold"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut", delay: 0.12 }}
-                  >
-                    {profile.full_name}
-                  </motion.h3>
-                  <motion.p
-                    className="text-muted mb-0"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut", delay: 0.18 }}
-                  >
-                    {profile.designation || "Employee"}
-                  </motion.p>
-                  <motion.span
-                    className="badge bg-primary mt-1"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut", delay: 0.24 }}
-                  >
-                    {profile.user_id}
-                  </motion.span>
+    <PageErrorBoundary>
+      <div className="admin-dashboard" style={{ padding: "2rem" }}>
+        <AdminSidebar activeTab="profile" setActiveTab={() => {}} />
+        <div className="main-content p-4" style={{ marginLeft: "260px" }}>
+          <h2 className="mb-4">My Profile</h2>
+
+          {error && (
+            <Alert variant="danger" dismissible>
+              <h4>Profile load error</h4>
+              <p>{error}</p>
+              <Button variant="primary" onClick={handleRetry} className="mt-2">Retry</Button>
+            </Alert>
+          )}
+
+          {success && <Alert variant="success">{success}</Alert>}
+
+          {/* A) Identity */}
+          <Card className="shadow-sm border-0 mb-4">
+            <Card.Header className="bg-white border-0 fw-bold">Identity</Card.Header>
+            <Card.Body className="row g-3">
+              <div className="col-md-3 text-center">
+                {p.photo ? (
+                  <img src={p.photo} alt="Profile" className="rounded-circle mb-2" style={{ width: "100px", height: "100px", objectFit: "cover" }} />
+                ) : (
+                  <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" style={{ width: "100px", height: "100px", fontSize: "2.5rem" }}>
+                    {p.fullName?.charAt(0)?.toUpperCase() || "J"}
+                  </div>
+                )}
+                <div className="fw-bold">{p.fullName || "-"}</div>
+                <div className="text-muted small">{p.email || "-"}</div>
+              </div>
+              <div className="col-md-9">
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label text-muted small">Employee ID</label>
+                    <div className="fw-semibold">{p.employeeId || "-"}</div>
+                  </div>
+                  <div className={["photo", "name", "phone"].includes("name") ? "col-md-6" : "col-md-6"}>
+                    <label className="form-label text-muted small">Full Name</label>
+                    {editMode ? (
+                      <input type="text" className="form-control form-control-sm" name="fullName" value={formData.fullName || p.fullName || ""} onChange={handleChange} />
+                    ) : (
+                      <div className="fw-semibold">{p.fullName || "-"}</div>
+                    )}
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-muted small">Email</label>
+                    <div className="fw-semibold">{p.email || "-"}</div>
+                  </div>
+                  <div className={["photo", "name", "phone"].includes("phone") ? "col-md-6" : "col-md-6"}>
+                    <label className="form-label text-muted small">Phone</label>
+                    {editMode ? (
+                      <input type="text" className="form-control form-control-sm" name="phone" value={formData.phone || p.phone || ""} onChange={handleChange} />
+                    ) : (
+                      <div className="fw-semibold">{p.phone || "-"}</div>
+                    )}
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-muted small">Designation</label>
+                    <div className="fw-semibold">{p.designation || "-"}</div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-muted small">Department</label>
+                    <div className="fw-semibold">{p.department || "-"}</div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-muted small">Join Date</label>
+                    <div className="fw-semibold">{p.joinDate ? new Date(p.joinDate).toLocaleDateString() : "-"}</div>
+                  </div>
                 </div>
-                {!editMode && (
-                  <>
-                    <Button variant="outline-primary" onClick={() => setEditMode(true)} className="me-2">
-                      Edit Profile
-                    </Button>
-                    <Button variant="primary" onClick={() => navigate("/salary-slip")}>
-                      View Salary Slip
-                    </Button>
-                  </>
+              </div>
+            </Card.Body>
+          </Card>
+
+          {/* B) Role & Access (READ-ONLY) */}
+          <Card className="shadow-sm border-0 mb-4">
+            <Card.Header className="bg-white border-0 fw-bold">Role &amp; Access</Card.Header>
+            <Card.Body className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Role</label>
+                <span className={`badge ${roleBadge}`}>{p.role || "-"}</span>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Status</label>
+                <span className={`badge ${statusBadge}`}>{p.status || "-"}</span>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Role Assigned By</label>
+                <div className="fw-semibold">{p.roleAssignedBy || "-"}</div>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Role Assigned On</label>
+                <div className="fw-semibold">{p.roleAssignedOn ? new Date(p.roleAssignedOn).toLocaleDateString() : "-"}</div>
+              </div>
+              <div className="col-12">
+                <label className="form-label text-muted small">Permitted Modules</label>
+                <div className="d-flex flex-wrap gap-2">
+                  {(p.permissions || []).map((perm, i) => (
+                    <span key={i} className="badge bg-light text-dark border">{perm}</span>
+                  ))}
+                  {(p.permissions || []).length === 0 && <span className="text-muted">-</span>}
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+
+          {/* C) Security */}
+          <Card className="shadow-sm border-0 mb-4">
+            <Card.Header className="bg-white border-0 fw-bold">Security</Card.Header>
+            <Card.Body className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Username</label>
+                {editMode ? (
+                  <input type="text" className="form-control form-control-sm" name="username" value={formData.username || p.username || ""} onChange={handleChange} />
+                ) : (
+                  <div className="fw-semibold">{p.username || "-"}</div>
                 )}
               </div>
-        </Card.Body>
-      </Card>
-
-      {error && <Alert variant="danger">{error}</Alert>}
-      {success && <Alert variant="success">{success}</Alert>}
-
-      <Row className="g-4 mb-4">
-        <Col md={4}>
-          <Card className="shadow-sm border-0 h-100">
-            <Card.Body className="d-flex align-items-center">
-              <div className="bg-success bg-opacity-10 rounded-circle p-3 me-3">
-                <FiCalendar className="text-success" size={24} />
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Last Login</label>
+                <div className="fw-semibold">
+                  {p.lastLogin?.time || "-"}
+                  <span className="text-muted small">({p.lastLogin?.ip || "-"}, {p.lastLogin?.device || "-"})</span>
+                </div>
               </div>
-              <div>
-                <p className="text-muted mb-0 small">Attendance This Month</p>
-                <h4 className="mb-0 fw-bold">{widgets.present_days} days</h4>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Password</label>
+                <button className="btn btn-outline-primary w-100" onClick={handleChangePassword}>Change password</button>
               </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="shadow-sm border-0 h-100">
-            <Card.Body className="d-flex align-items-center">
-              <div className="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                <FiClock className="text-warning" size={24} />
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Two-Factor Authentication</label>
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={editMode ? formData.twoFactorEnabled !== undefined ? formData.twoFactorEnabled : p.twoFactorEnabled : p.twoFactorEnabled}
+                    onChange={handleToggle2FA}
+                    disabled={!editMode}
+                  />
+                  <label className="form-check-label">{p.twoFactorEnabled ? "Enabled" : "Disabled"}</label>
+                </div>
               </div>
-              <div>
-                <p className="text-muted mb-0 small">Late Days</p>
-                <h4 className="mb-0 fw-bold">{widgets.late_days} days</h4>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Active Sessions</label>
+                <div className="fw-semibold">{p.activeSessions?.length || 0}</div>
               </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="shadow-sm border-0 h-100">
-            <Card.Body className="d-flex align-items-center">
-              <div className="bg-info bg-opacity-10 rounded-circle p-3 me-3">
-                <FiBriefcase className="text-info" size={24} />
-              </div>
-              <div>
-                <p className="text-muted mb-0 small">Leave Balance</p>
-                <h4 className="mb-0 fw-bold">{widgets.leave_balance} days</h4>
+              <div className="col-md-6">
+                <button className="btn btn-outline-danger w-100" onClick={handleLogoutAll}>Log out of all devices</button>
               </div>
             </Card.Body>
           </Card>
-        </Col>
-      </Row>
 
-      <Tab.Container defaultActiveKey="basic">
-        <Card className="shadow-sm border-0">
-          <Card.Body className="p-4 p-md-5">
-            <Nav variant="tabs" className="mb-4 profile-tabs">
-              <Nav.Item>
-                <Nav.Link eventKey="basic"><FiUser className="me-2" />Basic Info</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="activity"><FiActivity className="me-2" />Activity</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="leave"><FiCalendar className="me-2" />Leave Apply</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="payroll"><FiDollarSign className="me-2" />Payroll</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="personal"><FiMail className="me-2" />Personal Info</Nav.Link>
-              </Nav.Item>
-            </Nav>
-
-            <Tab.Content>
-              <Tab.Pane eventKey="basic" className="pt-3">
-                <h5 className="fw-bold mb-4">Basic Information</h5>
-                <Row className="g-4">
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Full Name</Form.Label>
-                      <Form.Control type="text" value={profile.full_name} readOnly />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Employee ID</Form.Label>
-                      <Form.Control type="text" value={profile.user_id} readOnly />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Date of Joining</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={profile.join_date || ""}
-                        readOnly
-                        className="bg-light"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Assigned Manager / POC</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={profile.assigned_manager_poc || "Not assigned"}
-                        readOnly
-                        className="bg-light"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Designation</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={profile.designation || "Not set"}
-                        readOnly
-                        className="bg-light"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Department</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={profile.department_name || "Not assigned"}
-                        readOnly
-                        className="bg-light"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Employment Type</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={profile.employment_type || "Not set"}
-                        readOnly
-                        className="bg-light"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Profile Photo</Form.Label>
-                      <Form.Control type="text" value={profile.image || "No photo uploaded"} readOnly />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Tab.Pane>
-
-              <Tab.Pane eventKey="activity" className="pt-3">
-                <h5 className="fw-bold mb-4">Recent Sessions</h5>
-                {recentSessions.length === 0 ? (
-                  <p className="text-muted mb-0">No sessions recorded yet.</p>
-                ) : (
-                  <Table striped bordered hover responsive className="mb-0">
-                    <thead className="table-light">
+          {/* D) Activity */}
+          <Card className="shadow-sm border-0 mb-4">
+            <Card.Header className="bg-white border-0 fw-bold">Activity</Card.Header>
+            <Card.Body>
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label text-muted small">Recent Actions</label>
+                  <Table striped bordered size="sm" className="table-sm">
+                    <thead>
                       <tr>
                         <th>Date</th>
-                        <th>Start Time</th>
-                        <th>End Time</th>
-                        <th>Total Worked</th>
+                        <th>Action</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentSessions.map((session) => (
-                        <tr key={session.id}>
-                          <td>{formatDate(session.session_date || session.start_time)}</td>
-                          <td>{formatSessionTime(session.start_time)}</td>
-                          <td>{formatSessionTime(session.end_time)}</td>
-                          <td>{formatDuration(session.duration_minutes)}</td>
+                      {(p.recentActions || []).map((a, i) => (
+                        <tr key={i}>
+                          <td>{a?.date || "-"}</td>
+                          <td>{a?.action || "-"}</td>
+                          <td><span className={`badge ${a?.status === "Success" ? "bg-success" : "bg-secondary"}`}>{a?.status || "-"}</span></td>
                         </tr>
                       ))}
+                      {(p.recentActions || []).length === 0 && <tr><td colSpan={3} className="text-center text-muted">No records yet</td></tr>}
                     </tbody>
                   </Table>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label text-muted small">Login History</label>
+                  <Table striped bordered size="sm" className="table-sm">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(p.loginHistory || []).map((h, i) => (
+                        <tr key={i}>
+                          <td>{h?.date || "-"}</td>
+                          <td>{h?.action || "-"}</td>
+                          <td><span className={`badge ${h?.status === "Success" ? "bg-success" : "bg-secondary"}`}>{h?.status || "-"}</span></td>
+                        </tr>
+                      ))}
+                      {(p.loginHistory || []).length === 0 && <tr><td colSpan={3} className="text-center text-muted">No records yet</td></tr>}
+                    </tbody>
+                  </Table>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+
+          {/* E) Preferences */}
+          <Card className="shadow-sm border-0">
+            <Card.Header className="bg-white border-0 fw-bold">Preferences</Card.Header>
+            <Card.Body className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Language</label>
+                {editMode ? (
+                  <select className="form-select form-control-sm" name="preferences.language" value={formData.preferences?.language || p.preferences?.language || "English"} onChange={handleChange}>
+                    <option>English</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                  </select>
+                ) : (
+                  <div className="fw-semibold">{p.preferences?.language || "-"}</div>
                 )}
-                <h5 className="fw-bold mb-4 mt-5">Work Record</h5>
-                <WorkRecord />
-              </Tab.Pane>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Time Zone</label>
+                {editMode ? (
+                  <select className="form-select form-control-sm" name="preferences.timeZone" value={formData.preferences?.timeZone || p.preferences?.timeZone || "Asia/Kolkata"} onChange={handleChange}>
+                    <option>Asia/Kolkata</option>
+                    <option>America/New_York</option>
+                    <option>Europe/London</option>
+                  </select>
+                ) : (
+                  <div className="fw-semibold">{p.preferences?.timeZone || "-"}</div>
+                )}
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Notifications</label>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={editMode ? formData.preferences?.notifications !== undefined ? formData.preferences.notifications : p.preferences?.notifications : p.preferences?.notifications}
+                    onChange={handleChange}
+                    disabled={!editMode}
+                  />
+                  <label className="form-check-label">{p.preferences?.notifications ? "Enabled" : "Disabled"}</label>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small">Theme</label>
+                {editMode ? (
+                  <select className="form-select form-control-sm" name="preferences.theme" value={formData.preferences?.theme || p.preferences?.theme || "light"} onChange={handleChange}>
+                    <option>light</option>
+                    <option>dark</option>
+                  </select>
+                ) : (
+                  <div className="fw-semibold">{p.preferences?.theme || "-"}</div>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
 
-              <Tab.Pane eventKey="leave" className="pt-3">
-                <h5 className="fw-bold mb-4">Leave Apply</h5>
-                {leaveSuccess && <Alert variant="success">{leaveSuccess}</Alert>}
-                {leaveError && <Alert variant="danger">{leaveError}</Alert>}
-                <Form onSubmit={handleLeaveSubmit}>
-                  <Row className="g-4">
-                    <Col md={6}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>Year of Working</Form.Label>
-                        <Form.Select
-                          name="leave_year"
-                          value={leaveForm.leave_year}
-                          onChange={(e) => setLeaveForm({ ...leaveForm, leave_year: e.target.value })}
-                          required
-                        >
-                          <option value="">Select Year</option>
-                          {getWorkingYears().map((year) => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>Type of Leave</Form.Label>
-                        <Form.Select
-                          name="leave_type"
-                          value={leaveForm.leave_type}
-                          onChange={(e) => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
-                          required
-                        >
-                          <option value="">Select Type</option>
-                          <option value="Leave">Leave</option>
-                          <option value="Permission">Permission</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>Start Date</Form.Label>
-                        <DatePicker
-                          selected={leaveForm.start_date ? new Date(leaveForm.start_date) : null}
-                          onChange={(date) => {
-                            const formatted = date ? date.toISOString().split('T')[0] : "";
-                            setLeaveForm({ ...leaveForm, start_date: formatted });
-                          }}
-                          dateFormat="yyyy-MM-dd"
-                          className="form-control"
-                          placeholderText="YYYY-MM-DD"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>End Date</Form.Label>
-                        <DatePicker
-                          selected={leaveForm.end_date ? new Date(leaveForm.end_date) : null}
-                          onChange={(date) => {
-                            const formatted = date ? date.toISOString().split('T')[0] : "";
-                            setLeaveForm({ ...leaveForm, end_date: formatted });
-                          }}
-                          dateFormat="yyyy-MM-dd"
-                          className="form-control"
-                          placeholderText="YYYY-MM-DD"
-                          minDate={leaveForm.start_date ? new Date(leaveForm.start_date) : undefined}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>Number of Days</Form.Label>
-                        <Form.Control
-                          type="text"
-                          readOnly
-                          value={leaveForm.leave_days || ''}
-                          placeholder="Select start and end dates"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={12}>
-                      <Form.Group className="mb-4">
-                        <Form.Label>Reason for Leave / Permission</Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={3}
-                          name="reason"
-                          value={leaveForm.reason}
-                          onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                          placeholder="Please provide a reason for your leave request..."
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={12}>
-                      <Button type="submit" variant="primary" disabled={leaveSubmitting}>
-                        {leaveSubmitting ? "Submitting..." : "Submit Leave Request"}
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-              </Tab.Pane>
-
-              <Tab.Pane eventKey="payroll" className="pt-3">
-                <h5 className="fw-bold mb-4">Payroll Essentials</h5>
-                <Row className="g-4">
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Bank Account Details</Form.Label>
-                      <Form.Control type="text" value={profile.bank_account_details || "Not provided"} readOnly />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>PAN Number</Form.Label>
-                      <Form.Control type="text" value={profile.pan_number || "Not provided"} readOnly />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>PF / UAN Number</Form.Label>
-                      <Form.Control type="text" value={profile.pf_uan_number || "Not provided"} readOnly />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Tab.Pane>
-
-              <Tab.Pane eventKey="personal" className="pt-3">
-                <h5 className="fw-bold mb-4">Personal Information</h5>
-                <Row className="g-4">
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Date of Birth</Form.Label>
-                      <DatePicker
-                        selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
-                        onChange={(date) => {
-                          const formatted = date ? date.toISOString().split('T')[0] : "";
-                          setFormData({ ...formData, date_of_birth: formatted });
-                        }}
-                        dateFormat="yyyy-MM-dd"
-                        className="form-control"
-                        placeholderText="YYYY-MM-DD"
-                        showYearDropdown
-                        yearDropdownItemNumber={12}
-                        scrollableYearDropdown
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Gender</Form.Label>
-                      <Form.Select
-                        name="gender"
-                        value={formData.gender || ""}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Blood Group</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="blood_group"
-                        value={formData.blood_group || ""}
-                        onChange={handleChange}
-                        placeholder="e.g. A+, B-, O+"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label><FiMail className="me-2" />Work Email</Form.Label>
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label><FiPhone className="me-2" />Mobile Number</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                      />
-                      </Form.Group>
-                    </Col>
-                    <Col md={12}>
-                     <Form.Group className="mb-4">
-                       <Form.Label><FiHome className="me-2" />Current Address</Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Emergency Contact Name</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="emergency_name"
-                        value={formData.emergency_name}
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Emergency Contact Number</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="emergency_phone"
-                       value={formData.emergency_phone}
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Card className="shadow-sm border-0 mt-4">
-                  <Card.Body className="p-4">
-                    <h6 className="fw-bold mb-3">Actions</h6>
-                    <div className="d-flex gap-2">
-                      {!editMode ? (
-                        <Button variant="outline-primary" onClick={() => setEditMode(true)}>
-                          <FiSave className="me-2" />Edit Personal Info
-                        </Button>
-                      ) : (
-                        <>
-                          <Button variant="primary" onClick={handleSubmit} disabled={saving}>
-                            {saving ? <Spinner animation="border" size="sm" /> : <><FiSave className="me-2" />Save Changes</>}
-                          </Button>
-                          <Button variant="secondary" onClick={() => { setEditMode(false); fetchProfile(); }}>
-                            Cancel
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
-                    {success && <Alert variant="success" className="mt-3 mb-0">{success}</Alert>}
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
-            </Tab.Content>
-          </Card.Body>
-        </Card>
-      </Tab.Container>
-    </Container>
+          {!editMode && (
+            <div className="mt-3">
+              <Button variant="primary" onClick={() => {
+                setFormData({
+                  fullName: p.fullName || "",
+                  phone: p.phone || "",
+                  username: p.username || "",
+                  preferences: { ...p.preferences },
+                  twoFactorEnabled: p.twoFactorEnabled,
+                });
+                setEditMode(true);
+              }}>Edit Profile</Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </PageErrorBoundary>
   );
 };
 

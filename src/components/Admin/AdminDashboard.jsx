@@ -19,6 +19,7 @@ import GroupEditModal from "../../pages/Groups/GroupEditModal";
 import DepartmentCreateModal from "../../pages/Departments/DepartmentCreateModal";
 import DepartmentEditModal from "../../pages/Departments/DepartmentEditModal";
 import TaskList from "../../pages/Tasks/Admin/TaskList";
+import AdminProfile from "./AdminProfile";
 import "../../assets/css/AdminDashboard.css";
 
 import ErrorBoundary from "../ErrorBoundary";
@@ -147,12 +148,13 @@ const AdminDashboard = () => {
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         </ErrorBoundary>
 
-        <Col md={9} lg={10} className="main-content p-4">
+        <Col md={9} lg={10} className="main-content">
           {activeTab === "dashboard" && (
-            <DashboardContent
-              setShowEmployeeModal={setShowEmployeeModal}
-              setShowGroupModal={setShowGroupModal}
-            />
+          <DashboardContent
+            setShowEmployeeModal={setShowEmployeeModal}
+            setShowGroupModal={setShowGroupModal}
+            setActiveTab={setActiveTab}
+          />
           )}
 
           {activeTab === "employees" && (
@@ -189,6 +191,7 @@ const AdminDashboard = () => {
           {activeTab === "holidays" && <HolidaysContent />}
           {activeTab === "weekends" && <WeekendsContent />}
           {activeTab === "settings" && <SettingsContent />}
+          {activeTab === "profile" && <AdminProfile />}
 
           <EmployeeRegistrationModal
             show={showEmployeeModal}

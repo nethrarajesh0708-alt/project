@@ -65,11 +65,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: "attendance", icon: CalendarCheck, label: "Attendance", badge: stats.attendance },
     { id: "leave", icon: JournalCheck, label: "Leave" },
     { id: "payroll", icon: CashStack, label: "Payroll" },
-    { id: "tasks", icon: ListTask, label: "Tasks" },
-    { id: "taskList", icon: ListTask, label: "Task List" },
     { id: "holidays", icon: CalendarEvent, label: "Holidays" },
-    { id: "weekends", icon: CalendarWeek, label: "Weekends" },
-    { id: "settings", icon: GearFill, label: "Settings" },
+    { id: "profile", icon: PersonGear, label: "Profile" },
   ];
 
   const toggleSidebar = () => {
@@ -112,31 +109,24 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <Nav.Link
                 active={activeTab === item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="d-flex align-items-center justify-content-between"
+                className="d-flex align-items-center"
                 onMouseEnter={() => setHoveredItem(item.id)}
                 onMouseLeave={() => setHoveredItem(null)}
               >
-                <span className="d-flex align-items-center">
-                  <item.icon className={`me-2 ${collapsed ? "mx-auto" : ""}`} />
+                <span className="nav-item-label">
+                  <item.icon className={`nav-item-icon ${collapsed ? "mx-auto" : ""}`} />
                   {!collapsed && item.label}
                 </span>
                 {!collapsed && item.badge !== undefined && (
-                  <span className="badge bg-primary rounded-pill">{item.badge}</span>
-                )}
-                {activeTab === item.id && !collapsed && (
-                  <span className="active-indicator"></span>
+                  <span className="badge bg-primary rounded-pill nav-item-badge">
+                    {item.badge}
+                  </span>
                 )}
               </Nav.Link>
             </OverlayTrigger>
           </Nav.Item>
         ))}
       </Nav>
-
-      {!collapsed && (
-        <div className="sidebar-footer p-3 text-center text-muted small">
-          v2.4.1 • {new Date().getFullYear()}
-        </div>
-      )}
     </Col>
   );
 };

@@ -5,31 +5,11 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ✅ loading state
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      fetch(`${BASE_URL}backend/api/auth/check_session.php`, {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            setUser(data.user);
-          } else {
-            localStorage.removeItem("user");
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem("user");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+    // TEMP DESIGN PHASE: skip API call. Restore original session check before launch.
+    setLoading(false);
   }, []);
 
   const login = async (userData) => {

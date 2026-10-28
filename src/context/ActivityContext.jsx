@@ -13,7 +13,7 @@ export const ActivityProvider = ({ children }) => {
     projectType: "",
     activityRole: "",
   });
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
   const checkStatus = useCallback(async () => {
     try {

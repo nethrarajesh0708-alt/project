@@ -1,71 +1,242 @@
 import React, { useState } from "react";
-import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
+import { Form, Button, Card, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiLogIn, FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
-import * as Yup from "yup";
-import { useFormik } from "formik";
+import { FiLogIn, FiKey, FiAlertCircle } from "react-icons/fi";
+
+// TEMP DESIGN PHASE: login bypassed. Restore the original check before launch.
+// Keyword -> route mapping. Edit keywords here.
+// IMPORTANT: These match the exact routes in src/App.jsx
+const KEYWORD_ROUTES = {
+  admin: "/AdminDashboard",
+  manager: "/manager/dashboard",
+  hr: "/HrDashboard",
+  emp: "/EmployeeDashboard",
+};
+
+// Comprehensive placeholder users per role so profile sections display fully.
+const PLACEHOLDER_USERS = {
+  admin: {
+    id: "temp-admin",
+    name: "John Admin",
+    email: "john.admin@company.com",
+    role: "Admin",
+    employee_id: "ADMIN001",
+    full_name: "John Admin",
+    user_id: "ADMIN001",
+    designation: "System Administrator",
+    department: "Engineering",
+    joinDate: "2018-03-01",
+    status: "Active",
+    permissions: ["Employees", "Attendance", "Payroll", "Reports", "Settings"],
+    roleAssignedBy: "System",
+    roleAssignedOn: "2018-03-01",
+    username: "john.admin",
+    lastLogin: { time: "2026-10-27 09:15 AM", ip: "192.168.1.105", device: "Chrome on Windows" },
+    twoFactorEnabled: false,
+    activeSessions: [],
+    recentActions: [],
+    loginHistory: [],
+    preferences: { language: "English", timeZone: "Asia/Kolkata", notifications: true, theme: "light" },
+    photo: "",
+    phone: "9876543210",
+    image: "",
+    gender: "Male",
+    address: "123 MG Road, Bangalore",
+    emergency_contact: "9876543211",
+    qualifications: "B.Tech Computer Science",
+    skills: "Java, Spring Boot",
+    photo_url: "",
+    manager_id: null,
+    leave_balance: 20,
+    is_active: 1,
+    created_at: "2018-03-01",
+    work_location: "Bangalore",
+    permanent_address: "123 MG Road, Bangalore",
+    dob: "1985-05-15",
+    bank_account_details: "Not provided",
+    pan_number: "Not provided",
+    pf_uan_number: "Not provided",
+    employment_type: "full-time",
+    assigned_manager_poc: "Not assigned",
+    blood_group: "",
+    date_of_birth: "1985-05-15",
+  },
+  manager: {
+    id: "temp-manager",
+    name: "Rahul Manager",
+    email: "rahul.manager@company.com",
+    role: "manager",
+    employee_id: "EMPMGR001",
+    full_name: "Rahul Manager",
+    user_id: "EMPMGR001",
+    designation: "Manager",
+    department_name: "Engineering",
+    phone: "9876543201",
+    image: "",
+    gender: "Male",
+    status: "active",
+    join_date: "2017-01-20",
+    address: "456 Brigade Road, Bangalore",
+    emergency_contact: "9876543202",
+    qualifications: "MBA",
+    skills: "Team Leadership, Project Management",
+    photo_url: "",
+    manager_id: null,
+    leave_balance: 18,
+    is_active: 1,
+    created_at: "2017-01-20",
+    work_location: "Bangalore",
+    permanent_address: "456 Brigade Road, Bangalore",
+    dob: "1982-11-10",
+    bank_account_details: "Not provided",
+    pan_number: "Not provided",
+    pf_uan_number: "Not provided",
+    employment_type: "full-time",
+    assigned_manager_poc: "Not assigned",
+    blood_group: "",
+    date_of_birth: "1982-11-10",
+  },
+  hr: {
+    id: "temp-hr",
+    name: "Priya Hr",
+    email: "priya.hr@company.com",
+    role: "hr",
+    employee_id: "HR0001",
+    full_name: "Priya HR",
+    user_id: "HR0001",
+    designation: "HR Lead",
+    department_name: "HR",
+    phone: "9876543212",
+    image: "",
+    gender: "Female",
+    status: "active",
+    join_date: "2019-06-15",
+    address: "456 Brigade Road, Bangalore",
+    emergency_contact: "9876543213",
+    qualifications: "MBA HR",
+    skills: "Recruitment, Payroll",
+    photo_url: "",
+    manager_id: null,
+    leave_balance: 18,
+    is_active: 1,
+    created_at: "2019-06-15",
+    work_location: "Bangalore",
+    permanent_address: "456 Brigade Road, Bangalore",
+    dob: "1992-08-20",
+    bank_account_details: "Not provided",
+    pan_number: "Not provided",
+    pf_uan_number: "Not provided",
+    employment_type: "full-time",
+    assigned_manager_poc: "Not assigned",
+    blood_group: "",
+    date_of_birth: "1992-08-20",
+  },
+  emp: {
+    id: "temp-emp",
+    name: "Ravi Kumar",
+    email: "ravi.kumar@company.com",
+    role: "employee",
+    employee_id: "EMP0001",
+    full_name: "Ravi Kumar",
+    user_id: "EMP0001",
+    designation: "Senior Developer",
+    department_name: "Engineering",
+    phone: "9876543210",
+    image: "",
+    gender: "Male",
+    status: "active",
+    join_date: "2018-03-01",
+    address: "123 MG Road, Bangalore",
+    emergency_contact: "9876543211",
+    qualifications: "B.Tech Computer Science",
+    skills: "Java, Spring Boot",
+    photo_url: "",
+    manager_id: 2,
+    leave_balance: 12,
+    is_active: 1,
+    created_at: "2018-03-01",
+    work_location: "Bangalore",
+    permanent_address: "123 MG Road, Bangalore",
+    dob: "1990-05-15",
+    bank_account_details: "Not provided",
+    pan_number: "Not provided",
+    pf_uan_number: "Not provided",
+    employment_type: "full-time",
+    assigned_manager_poc: "Rahul Manager",
+    blood_group: "",
+    date_of_birth: "1990-05-15",
+  },
+};
+
+// ORIGINAL LOGIN CODE (commented out - restore before launch):
+// import * as Yup from "yup";
+// import { useFormik } from "formik";
+
+// const validationSchema = Yup.object().shape({
+//   username: Yup.string().required("Access key is required"),
+//   password: Yup.string().required("Please enter a password"),
+// });
+//
+// const formik = useFormik({
+//   initialValues: { username: "", password: "" },
+//   validationSchema,
+//   onSubmit: async () => {
+//     setIsLoading(true);
+//     setError("");
+//     try {
+//       const response = await fetch(`${BASE_URL}backend/api/auth/login.php`, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         credentials: "include",
+//         body: JSON.stringify({
+//           username: formik.values.username,
+//           password: formik.values.password,
+//         }),
+//       });
+//       const data = await response.json();
+//       if (data.success) {
+//         login({ username: formik.values.username, role: data.role });
+//         navigate(
+//           data.role === "admin" ? "/AdminDashboard"
+//           : data.role === "hr" ? "/HrDashboard"
+//           : data.role === "employee" ? "/EmployeeDashboard"
+//           : "/"
+//         );
+//       } else {
+//         setError(data.message || "Invalid credentials");
+//       }
+//     } catch (err) {
+//       console.error(err);
+//       setError("Something went wrong. Please try again.");
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   },
+// });
 
 const LoginFetch = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Validation schema
-  const validationSchema = Yup.object().shape({
-    username: Yup.string().required("Access key is required"),
-    password: Yup.string().required("Please enter a password"),
-  });
-
-  const formik = useFormik({
-    initialValues: {
-      username: "",
-      password: "",
-    },
-    validationSchema,
-    onSubmit: async () => {
-      setIsLoading(true);
+  const handleEnter = (e) => {
+    e.preventDefault();
+    const key = document.querySelector('input[name="access-key"]').value.trim().toLowerCase();
+    const target = KEYWORD_ROUTES[key];
+    if (target) {
       setError("");
-
-      try {
-        const response = await fetch(`${BASE_URL}backend/api/auth/login.php`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            username: formik.values.username,
-            password: formik.values.password,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          login({ username: formik.values.username, role: data.role });
-          navigate(
-            data.role === "admin"
-              ? "/AdminDashboard"
-              : data.role === "hr"
-              ? "/HrDashboard"
-              : data.role === "employee"
-              ? "/EmployeeDashboard"
-              : "/"
-          );
-        } else {
-          setError(data.message || "Invalid credentials");
-        }
-      } catch (err) {
-        console.error(err);
-        setError("Something went wrong. Please try again.");
-      } finally {
-        setIsLoading(false);
+      // TEMP DESIGN PHASE: set placeholder user matching the keyword's role
+      // before navigating so pages read the correct role and profile fields.
+      const placeholder = PLACEHOLDER_USERS[key];
+      if (placeholder) {
+        login(placeholder);
       }
-    },
-  });
+      navigate(target);
+    } else {
+      setError("Invalid access key");
+    }
+  };
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
@@ -83,101 +254,46 @@ const LoginFetch = () => {
           </div>
 
           {error && (
-            <Alert variant="danger" className="d-flex align-items-center">
+            <Alert variant="danger" className="d-flex align-items-center mb-3">
               <FiAlertCircle className="me-2" size={18} />
               {error}
             </Alert>
           )}
 
-          <Form onSubmit={formik.handleSubmit}>
-            <Form.Group className="mb-3">
+          <Form onSubmit={handleEnter}>
+            <Form.Group className="mb-4">
               <Form.Label className="text-muted small fw-bold">
                 ACCESS KEY
               </Form.Label>
               <div className="input-group">
                 <span className="input-group-text bg-light border-end-0">
-                  <FiUser className="text-muted" />
+                  <FiKey className="text-muted" />
                 </span>
-                <Form.Control
+                <input
                   type="text"
-                  name="username"
+                  name="access-key"
+                  className="form-control border-start-0"
                   placeholder="Enter access key"
-                  value={formik.values.username}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  isInvalid={formik.touched.username && formik.errors.username}
-                  className="border-start-0"
+                  autoFocus
                 />
               </div>
-              {formik.touched.username && formik.errors.username && (
-                <Form.Control.Feedback
-                  type="invalid"
-                  className="d-flex align-items-center"
-                >
-                  <FiAlertCircle className="me-1" size={14} />
-                  {formik.errors.username}
-                </Form.Control.Feedback>
-              )}
-            </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label className="text-muted small fw-bold">
-                PASSWORD
-              </Form.Label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0">
-                  <FiLock className="text-muted" />
-                </span>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  placeholder="Enter any password"
-                  value={formik.values.password}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  isInvalid={formik.touched.password && formik.errors.password}
-                  className="border-start-0"
-                />
-              </div>
-              {formik.touched.password && formik.errors.password && (
-                <Form.Control.Feedback
-                  type="invalid"
-                  className="d-flex align-items-center"
-                >
-                  <FiAlertCircle className="me-1" size={14} />
-                  {formik.errors.password}
-                </Form.Control.Feedback>
-              )}
             </Form.Group>
 
             <Button
               variant="primary"
               type="submit"
               className="w-100 py-2 fw-bold"
-              disabled={isLoading}
             >
-              {isLoading ? (
-                <>
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    className="me-2"
-                  />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <FiLogIn className="me-2" />
-                  Sign In
-                </>
-              )}
+              <>
+                <FiKey className="me-2" />
+                Enter
+              </>
             </Button>
           </Form>
 
           <div className="text-center mt-4 pt-3 border-top">
             <p className="text-muted small mb-0">
-              Development access keys: <strong>admin</strong> or <strong>EMP0001</strong>
+              Try: <strong>admin</strong>, <strong>manager</strong>, <strong>hr</strong>, <strong>emp</strong>
             </p>
           </div>
         </Card.Body>

@@ -89,9 +89,6 @@ const Header = () => {
           ) : (
             <>
               <li>
-                <NavLink to="/profile" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Profile</NavLink>
-              </li>
-              <li>
                 <button className="nav-link" onClick={handleLogout}>Logout</button>
               </li>
             </>
